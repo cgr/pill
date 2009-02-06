@@ -79,6 +79,18 @@ function pill($text){
 				$function_key = "function ".$tokens[$i+2][1]; 
 				$results[$function_key] = 1; //set the new function in results with a score of 1
 				$i+=2;			
+			}elseif($tokens[$i+1][0] == T_WHITESPACE && $tokens[$i+2] == '&' && $tokens[$i+3][0] == T_STRING){
+				//handle functions with return references
+				$in_function = 1;
+				$function_key = "function &".$tokens[$i+3][1]; 
+				$results[$function_key] = 1; //set the new function in results with a score of 1
+				$i+=3;				
+			}elseif($tokens[$i+1][0] == T_WHITESPACE && $tokens[$i+2] == '&' && $tokens[$i+3][0] == T_WHITESPACE && $tokens[$i+4][0] == T_STRING){
+				//handle functions with return references
+				$in_function = 1;
+				$function_key = "function & ".$tokens[$i+4][1]; 
+				$results[$function_key] = 1; //set the new function in results with a score of 1
+				$i+=4;				
 			}else{
 				die("unknown function format on function #".$total_function_count."\n\n");
 			}
