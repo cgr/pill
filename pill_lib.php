@@ -127,7 +127,7 @@ function traverse_directory($dir,$do_recursion,$do_asp){
 	foreach(scandir($dir) as $key => $file){
 		if (preg_match('/\.(php|php3|php4|php5)$/i',$file) ){
 			$file_scores = pill(harvest_file_contents("$dir/$file",$do_asp));
-			array_push($file_results,attach_file_to_scores("$dir/$file",$file_scores));
+			$file_results = array_merge($file_results,attach_file_to_scores("$dir/$file",$file_scores));
 		}elseif($do_recursion && is_dir("$dir/$file") && !preg_match('/^\./', $file)){
 			$file_results = array_merge($file_results,traverse_directory("$dir/$file",$do_recursion,$do_asp));
 		}
@@ -194,7 +194,7 @@ function score_files($file_path,$do_recursion,$do_asp){
 	$results = Array();
 	if(is_file($file_path)){
 		$file_scores = pill(harvest_file_contents($file_path,$do_asp));
-		array_push($results,attach_file_to_scores($file_path,$file_scores));
+		$results = array_merge($results,attach_file_to_scores($file_path,$file_scores));
 	}elseif(is_dir($file_path)){
 		$results = traverse_directory($file_path,$do_recursion,$do_asp);
 	}else{
@@ -213,14 +213,33 @@ function attach_file_to_scores($file,$file_scores){
 	return $results;
 }//end attach_file_to_functions
 
+
 function cmp_scores($a,$b){
 	//sort by score and then by function name
-}
-
-
-function sort_scores(&$scores){
+	if($b['score'] > $a['score']){
+		return 1;
+	}elseif($b['score'] < $a['score']){
+		return -1;
+	}else{
+		return 	strcmp($a['function'],$b['function']);		
+	}
 	
 }
+
+function sort_scores(&$scores){
+	return uasort($scores,"cmp_scores");	
+}
+
+function print_score_output($scores){
+	echo "\n";
+	foreach($scores as $score_key => $score_value){
+			$file = $score_value['file'];
+			$function_name = $score_value['function'];
+			$score = $score_value['score'];
+			
+			echo sprintf("%5d - %s : %s\n",$score,$file,$function_name);
+	}
+}//end print_score_output
 
 function harvest_file_contents($file,$process_asp){
 	$text = file_get_contents($file);

@@ -35,6 +35,10 @@
 	if(array_key_exists('argc',$_SERVER)){
 		$options = process_command_line($argv); //auto sets all parameters based on
 		$final_results = score_files($options['FILE_PATH'],$options['RECURSIVE'],$options['ASP']);
-		echo var_dump($final_results);
+		
+		if($options['SORT']){
+			sort_scores($final_results);
+		}
+		print_score_output($final_results);
 	}//end if array_key_exists argc
 ?>
