@@ -2,7 +2,7 @@
 	
 	/*
 				 
-	    a PHP script that computes McCabe's cyclomatic complexity of PHP source code
+	    a PHP script that computes cyclomatic complexity of PHP source code
 	    Copyright (C) 2009 Charles Rowe
 	    Version 0.1a
 
@@ -34,7 +34,7 @@
 	
 	if(array_key_exists('argc',$_SERVER)){
 		$options = process_command_line($argv); //auto sets all parameters based on
-		$final_results = score_files($options['FILE_PATH'],$options['RECURSIVE'],$options['ASP']);
+		$final_results = score_files($options['FILE_PATH'],$options['CC_TYPE'],$options['RECURSIVE'],$options['ASP']);
 		
 		if($options['SORT']){
 			sort_scores($final_results);

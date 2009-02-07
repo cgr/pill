@@ -2,7 +2,7 @@
 
 /*
 			 
-    a PHP script that computes McCabe's cyclomatic complexity of PHP source code
+    a PHP script that computes cyclomatic complexity of PHP source code
     Copyright (C) 2009 Charles Rowe
     Version 0.1a
 
@@ -50,12 +50,20 @@ a : show all -- show all complexity scores regardless of warn or error levels
 
 s : sort all complexity scores in descending order
 
-By default, if no options are specified, the flags -e and -s will automatically be applied.
+asp : process the code for ASP style tagging '<% echo ' hi!'; %>'
+
+cc : DEFAULT   -- Booleans are not counted, case statements are counted
+
+cc2 : STRICT   -- booleans and case statements are counted
+
+cc3 : MODIFIED -- booleans are counted, switch statements are counted, case statements ARE NOT counted
+
+By default, if no options are specified, the flags -e,-s, and -cc will automatically be applied.
 
 USAGESTRING;
 
 
-function pill($text){
+function pill($text,$complexity_type){
 	$results = Array('Global Code' => 1);
 	$tokens = token_get_all($text);
 	$in_function = "";
@@ -106,27 +114,29 @@ function pill($text){
 			}//end if brace_count == 0
 		}// end elseif '}'	
 		
-		$results[$function_key] += count_valid_tokens($token);
+		$results[$function_key] += count_valid_tokens($token, $complexity_type);
 		$i++;
 	}//end foreach
 	
 	return $results;	
 }//end function pill
 
-function count_valid_tokens($token){
+function count_valid_tokens($token,$complexity_type){
 	$complexity = 0;
+		
 	switch ($token) {
+		case T_BOOLEAN_AND: if($complexity_type == 2){$complexity++;}break;
+		case T_BOOLEAN_OR:  if($complexity_type == 2){$complexity++;}break;
+		case T_LOGICAL_AND: if($complexity_type == 2){$complexity++;}break;
+		case T_LOGICAL_OR:	if($complexity_type == 2){$complexity++;}break;		
+		case T_CASE:		if($complexity_type <  3){$complexity++;}break;
+		case T_SWITCH: 		if($complexity_type == 3){$complexity++;}break;
 		case '?': //ternary operator
-		case T_BOOLEAN_AND:
-		case T_BOOLEAN_OR:
-		case T_CASE:
 		case T_CATCH:
 		case T_ELSEIF:
 		case T_FOR:
 		case T_FOREACH:
 		case T_IF:
-		case T_LOGICAL_AND:
-		case T_LOGICAL_OR:			
 		case T_WHILE: //will cover do/while also
 			$complexity++;
 		break;
@@ -134,14 +144,14 @@ function count_valid_tokens($token){
 	return $complexity;
 }// end function count_valid_tokens
 
-function traverse_directory($dir,$do_recursion,$do_asp){
+function traverse_directory($dir,$complexity_type,$do_recursion,$do_asp){
 	$file_results = Array();
 	foreach(scandir($dir) as $key => $file){
 		if (preg_match('/\.(php|php3|php4|php5)$/i',$file) ){
-			$file_scores = pill(harvest_file_contents("$dir/$file",$do_asp));
+			$file_scores = pill(harvest_file_contents("$dir/$file",$do_asp),$complexity_type);
 			$file_results = array_merge($file_results,attach_file_to_scores("$dir/$file",$file_scores));
 		}elseif($do_recursion && is_dir("$dir/$file") && !preg_match('/^\./', $file)){
-			$file_results = array_merge($file_results,traverse_directory("$dir/$file",$do_recursion,$do_asp));
+			$file_results = array_merge($file_results,traverse_directory("$dir/$file",$complexity_type,$do_recursion,$do_asp));
 		}
 	}//end foreach $file
 	return $file_results;	
@@ -158,7 +168,8 @@ function process_command_line($command_line){
 						'DO_ALL' => false,
 						'SORT' => false,
 						'FILE_PATH' => $command_line[1],
-						'ASP' => false
+						'ASP' => false,
+						'CC_TYPE' => 1
 			   );
 	
 	if(count($command_line) < 2 ){
@@ -190,10 +201,12 @@ function process_command_line($command_line){
 						}
 						break;
 			case '-a':	$options['DO_ALL'] = true; break;
-			
 			case '-s': $options['SORT'] = true; break;
-			
 			case '-asp': $options['ASP'] = true; break;
+			case '-cc1' :
+			case '-cc'  : $options['CC_TYPE'] = 1;break;
+			case '-cc2' : $options['CC_TYPE'] = 2;break;
+			case '-cc3' : $options['CC_TYPE'] = 3;break;
 			default: die($usage);
 		}//end switch
 		
@@ -202,13 +215,13 @@ function process_command_line($command_line){
 	return $options;
 }//end function process_command_line
 
-function score_files($file_path,$do_recursion,$do_asp){
+function score_files($file_path,$complexity_type,$do_recursion,$do_asp){
 	$results = Array();
 	if(is_file($file_path)){
-		$file_scores = pill(harvest_file_contents($file_path,$do_asp));
+		$file_scores = pill(harvest_file_contents($file_path,$do_asp),$complexity_type);
 		$results = array_merge($results,attach_file_to_scores($file_path,$file_scores));
 	}elseif(is_dir($file_path)){
-		$results = traverse_directory($file_path,$do_recursion,$do_asp);
+		$results = traverse_directory($file_path,$complexity_type,$do_recursion,$do_asp);
 	}else{
 		die("\ncould not find $file_path\n");
 	}
