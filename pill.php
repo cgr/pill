@@ -36,9 +36,9 @@
 		$options = process_command_line($argv); //auto sets all parameters based on
 		$final_results = score_files($options['FILE_PATH'],$options['CC_TYPE'],$options['RECURSIVE'],$options['ASP']);
 		
-		if($options['SORT']){
-			sort_scores($final_results);
-		}
-		print_score_output($final_results);
+		$error = ($options['DO_ERROR'] ? $options['ERROR_LEVEL'] : "");
+		$warn = ($options['DO_WARN'] ? $options['WARN_LEVEL'] : "");
+		
+		print_score_output($final_results,$error,$warn,$options['DO_ALL']);
 	}//end if array_key_exists argc
 ?>

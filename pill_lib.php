@@ -48,8 +48,6 @@ the default level will be set to $DEFAULT_ERROR_LEVEL
 
 a : show all -- show all complexity scores regardless of warn or error levels
 
-s : sort all complexity scores in descending order
-
 asp : process the code for ASP style tagging '<% echo ' hi!'; %>'
 
 cc : DEFAULT   -- Booleans are not counted, case statements are counted
@@ -166,7 +164,6 @@ function process_command_line($command_line){
 						'DO_WARN' => false,
 						'DO_ERROR' => false,
 						'DO_ALL' => false,
-						'SORT' => false,
 						'FILE_PATH' => $command_line[1],
 						'ASP' => false,
 						'CC_TYPE' => 1
@@ -188,7 +185,6 @@ function process_command_line($command_line){
 			case '-r':	$options['RECURSIVE'] = true; break;
 			
 			case '-w':	$options['DO_WARN'] = true;
-						$foo = $command_line[$i+1];
 						if(is_numeric($command_line[$i+1])){
 							$i++;
 							$options['WARN_LEVEL'] = $command_line[$i];
@@ -201,7 +197,6 @@ function process_command_line($command_line){
 						}
 						break;
 			case '-a':	$options['DO_ALL'] = true; break;
-			case '-s': $options['SORT'] = true; break;
 			case '-asp': $options['ASP'] = true; break;
 			case '-cc1' :
 			case '-cc'  : $options['CC_TYPE'] = 1;break;
@@ -255,16 +250,52 @@ function sort_scores(&$scores){
 	return uasort($scores,"cmp_scores");	
 }
 
-function print_score_output($scores){
-	echo "\n";
+
+function categorize(&$scores,$error,$warn,$all){
+	$results = Array('error' => Array(), 'warn' => Array(), 'all' => Array());
+
 	foreach($scores as $score_key => $score_value){
-			$file = $score_value['file'];
-			$function_name = $score_value['function'];
-			$score = $score_value['score'];
-			
-			echo sprintf("%5d - %s : %s\n",$score,$file,$function_name);
+		if($error && $error <= $score_value['score']){
+			array_push($results['error'],$score_value);
+		}elseif($warn && $warn <= $score_value['score']){
+			array_push($results['warn'],$score_value);			
+		}else{
+			array_push($results['all'],$score_value);			
+		}
 	}
+	$scores = $results;
+} //end categorize
+
+function print_score_output($scores,$error,$warn,$all){
+	sort_scores($scores);
+	categorize($scores,$error,$warn,$all);
+	echo "\n";
+
+	if(count($scores['error']) > 0 && ($error || $all) ){
+		echo "Errors:\n";
+		print_block($scores['error']);
+	}
+	echo "\n";
+	if(count($scores['warn']) > 0 && ($warn || $all) ){
+		echo "Warnings:\n";
+		print_block($scores['warn']);
+	}
+	echo "\n";
+	if(count($scores['all']) > 0 && $all){
+		echo "Good:\n";
+		print_block($scores['all']);
+	}
+	
 }//end print_score_output
+
+function print_block($scores){
+	foreach($scores as $score_key => $score_value){
+		$file = $score_value['file'];
+		$function_name = $score_value['function'];
+		$score = $score_value['score'];
+		echo sprintf("%5d - %s : %s\n",$score,$file,$function_name);
+	}
+}
 
 function harvest_file_contents($file,$process_asp){
 	$text = file_get_contents($file);
